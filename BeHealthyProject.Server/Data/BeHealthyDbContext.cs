@@ -1,9 +1,11 @@
 ﻿using BeHealthyProject.Server.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeHealthyProject.Server.Data
 {
-	public class BeHealthyDbContext : DbContext
+	public class BeHealthyDbContext : IdentityDbContext<IdentityUser>
 	{
 		public BeHealthyDbContext(DbContextOptions options) : base(options)
 		{

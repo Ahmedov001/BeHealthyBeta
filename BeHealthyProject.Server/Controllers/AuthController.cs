@@ -21,12 +21,15 @@ namespace BeHealthyProject.Server.Controllers
 		private readonly BeHealthyDbContext _beHealthyDbContext;
 		private readonly IConfiguration _configuration;
 
-		public AuthController(UserManager<Dietitian> dietitianManager, UserManager<User> userManager, IConfiguration configuration)
+		public AuthController(UserManager<Dietitian> dietitianManager, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, BeHealthyDbContext beHealthyDbContext, IConfiguration configuration)
 		{
 			_dietitianManager = dietitianManager;
 			_userManager = userManager;
+			_roleManager = roleManager;
+			_beHealthyDbContext = beHealthyDbContext;
 			_configuration = configuration;
 		}
+
 		[HttpPost("signup-user")]
 		public async Task<ActionResult> SignUpAsUser([FromBody]RegisterDto dto)
 		{
@@ -70,7 +73,7 @@ namespace BeHealthyProject.Server.Controllers
 				}
 				await _dietitianManager.AddToRoleAsync(dietitian,"Dietitian");
 
-				return Ok(new
+				return Ok(new	
 				{
 					Status = "Success",
 					Message = "Dietitian created succesfully"
@@ -79,14 +82,42 @@ namespace BeHealthyProject.Server.Controllers
 			return BadRequest();
 		}
 
-		[HttpPost("signin")]
-		public async Task<IActionResult> SignIn([FromBody] LoginDto dto)
+		[HttpPost("signin-user")]
+		public async Task<IActionResult> SignInForUser([FromBody] LoginDto dto)
 		{
 			var user = await _userManager.FindByNameAsync(dto.Username);
 
 			if (user != null && await _userManager.CheckPasswordAsync(user, dto.Password))
 			{
 				var userRoles = await _userManager.GetRolesAsync(user);
+
+				var authClaims = new List<Claim>
+				{
+					new Claim(ClaimTypes.Name,user.UserName),
+					new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
+				};
+
+				foreach (var role in userRoles)
+				{
+					authClaims.Add(new Claim(ClaimTypes.Role, role));
+				}
+
+				var token = GetToken(authClaims);
+
+				return Ok(new { Token = new JwtSecurityTokenHandler().WriteToken(token), Expiration = token.ValidTo });
+			}
+
+			return Unauthorized();
+		}
+
+		[HttpPost("signin-dietitian")]
+		public async Task<IActionResult> SignInForDietitian([FromBody] LoginDto dto)
+		{
+			var user = await _dietitianManager.FindByNameAsync(dto.Username);
+
+			if (user != null && await _dietitianManager.CheckPasswordAsync(user, dto.Password))
+			{
+				var userRoles = await _dietitianManager.GetRolesAsync(user);
 
 				var authClaims = new List<Claim>
 				{

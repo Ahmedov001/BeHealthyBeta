@@ -9,7 +9,7 @@ const JwtTokenFrontend = () => {
     const handleLogin = async () => {
         setError('');
         try {
-            const response = await fetch('http://localhost:5000/api/Auth/signin', {
+            const response = await fetch('https://localhost:7148/api/Auth/signin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
